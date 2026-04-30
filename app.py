@@ -6,7 +6,7 @@ from transcriber import load_whisper_model, transcribe_to_srt, convert_srt_to_as
 
 st.set_page_config(page_title="Auto-Caption Burn-in", layout="wide")
 st.title("🎬 Auto-Caption Burn-in System")
-st.caption("Version 1.3.0 - Faster-Whisper (Small) & Smart Editing")
+st.caption("Version 1.3.1 - Auto-Sync Memory Update")
 
 # Ensure workdir exists
 workdir = "workspace/session"
@@ -31,9 +31,10 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
                     extract_audio(input_path, audio_path)
                     
                     model_info = load_whisper_model()
-                    srt_content = transcribe_to_srt(model_info, audio_path)
+                    srt_content, word_timings = transcribe_to_srt(model_info, audio_path)
                     
                     st.session_state.srt_content = srt_content
+                    st.session_state.word_timings = word_timings
                     st.session_state.step = 2
                     st.rerun()
                 except Exception as e:
@@ -48,7 +49,8 @@ with st.expander("Step 2: Review & Edit Subtitle", expanded=(st.session_state.st
             
             # Convert edited SRT to ASS for processing
             with st.spinner("Mempersiapkan animasi typewriter..."):
-                ass_content = convert_srt_to_ass(edited_srt)
+                timings = st.session_state.get('word_timings', {})
+                ass_content = convert_srt_to_ass(edited_srt, timings)
                 ass_path = os.path.join(workdir, "subs.ass")
                 with open(ass_path, "w", encoding="utf-8") as f:
                     f.write(ass_content)
