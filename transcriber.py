@@ -1,15 +1,13 @@
-import whisper
+from faster_whisper import WhisperModel
 import streamlit as st
+import re
 
 @st.cache_resource
 def load_whisper_model():
-    # Try to load on GPU first, fallback to CPU if kernel is incompatible
-    try:
-        model = whisper.load_model("base", device="cuda")
-        return model, "cuda"
-    except Exception:
-        model = whisper.load_model("base", device="cpu")
-        return model, "cpu"
+    # Use 'small' model with INT8 quantization for best CPU balance
+    # Device is CPU by default, compute_type="int8" reduces RAM usage
+    model = WhisperModel("small", device="cpu", compute_type="int8")
+    return model, "cpu"
 
 def format_time_srt(seconds):
     h = int(seconds // 3600)
@@ -45,27 +43,28 @@ def format_time_ass(seconds):
 
 def transcribe_to_srt(model_info, audio_path):
     model, device = model_info
-    try:
-        result = model.transcribe(audio_path, fp16=(device == "cuda"), word_timestamps=True)
-    except Exception:
-        if device == "cuda":
-            import whisper
-            model = whisper.load_model("base", device="cpu")
-            result = model.transcribe(audio_path, fp16=False, word_timestamps=True)
-        else:
-            raise
+    
+    # initial_prompt helps with Indonesian context and punctuation
+    initial_prompt = "Ini adalah transkripsi video dalam bahasa Indonesia yang akurat."
+    
+    segments, info = model.transcribe(
+        audio_path, 
+        word_timestamps=True,
+        initial_prompt=initial_prompt,
+        beam_size=5
+    )
 
     srt_content = ""
     srt_index = 1
 
-    for segment in result.get('segments', []):
-        words = segment.get('words', [])
+    for segment in segments:
+        words = segment.words
         if not words:
             continue
 
         current_phrase = []
         for w in words:
-            w_text = w['word'].strip()
+            w_text = w.word.strip()
             test_phrase = " ".join([word['word'] for word in current_phrase] + [w_text])
             if len(test_phrase) > 50 and current_phrase:
                 # Output current phrase
@@ -74,9 +73,9 @@ def transcribe_to_srt(model_info, audio_path):
                 text = " ".join([word['word'] for word in current_phrase])
                 srt_content += f"{srt_index}\n{format_time_srt(start_time)} --> {format_time_srt(end_time)}\n{text}\n\n"
                 srt_index += 1
-                current_phrase = [{'word': w_text, 'start': w['start'], 'end': w['end']}]
+                current_phrase = [{'word': w_text, 'start': w.start, 'end': w.end}]
             else:
-                current_phrase.append({'word': w_text, 'start': w['start'], 'end': w['end']})
+                current_phrase.append({'word': w_text, 'start': w.start, 'end': w.end})
                 
         if current_phrase:
             start_time = current_phrase[0]['start']
@@ -147,6 +146,3 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
                 ass_content += f"Dialogue: 0,{format_time_ass(display_start)},{format_time_ass(display_end)},Default,,0,0,0,,{text_to_display}\n"
                 
     return ass_content
-
-
-
