@@ -59,27 +59,39 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         if not words:
             continue
 
+        # Group words into phrases (max 50 chars)
+        phrases = []
         current_phrase = []
-        
-        for i, word_obj in enumerate(words):
-            w_start = word_obj['start']
-            w_end = word_obj['end']
-            w_text = word_obj['word'].strip()
-            
-            # Check length constraint
-            test_phrase = " ".join([w['word'] for w in current_phrase] + [w_text])
+        for w in words:
+            w_text = w['word'].strip()
+            test_phrase = " ".join([word['word'] for word in current_phrase] + [w_text])
             if len(test_phrase) > 50 and current_phrase:
-                # Reset phrase if too long
-                current_phrase = [{'word': w_text, 'start': w_start, 'end': w_end}]
+                phrases.append(current_phrase)
+                current_phrase = [{'word': w_text, 'start': w['start'], 'end': w['end']}]
             else:
-                current_phrase.append({'word': w_text, 'start': w_start, 'end': w_end})
+                current_phrase.append({'word': w_text, 'start': w['start'], 'end': w['end']})
+        if current_phrase:
+            phrases.append(current_phrase)
+
+        # Generate overlapping dialogue lines using the {\alpha&HFF&} transparency trick
+        for phrase_words in phrases:
+            phrase_end = phrase_words[-1]['end']
+            
+            for i, word_obj in enumerate(phrase_words):
+                display_start = word_obj['start']
+                display_end = phrase_words[i+1]['start'] if i + 1 < len(phrase_words) else phrase_end
                 
-            display_start = w_start
-            display_end = words[i+1]['start'] if i + 1 < len(words) else w_end
-            
-            text_to_display = " ".join([w['word'] for w in current_phrase])
-            
-            ass_content += f"Dialogue: 0,{format_time_ass(display_start)},{format_time_ass(display_end)},Default,,0,0,0,,{text_to_display}\n"
+                # To prevent text from shifting horizontally when centered, we print the FULL sentence.
+                # However, words that haven't been spoken yet are made completely transparent.
+                visible_words = [w['word'] for w in phrase_words[:i+1]]
+                invisible_words = [w['word'] for w in phrase_words[i+1:]]
+                
+                if invisible_words:
+                    text_to_display = " ".join(visible_words) + " {\\alpha&HFF&}" + " ".join(invisible_words)
+                else:
+                    text_to_display = " ".join(visible_words)
+                    
+                ass_content += f"Dialogue: 0,{format_time_ass(display_start)},{format_time_ass(display_end)},Default,,0,0,0,,{text_to_display}\n"
 
     return ass_content
 

@@ -6,6 +6,7 @@ from transcriber import load_whisper_model, transcribe_to_ass
 
 st.set_page_config(page_title="Auto-Caption Burn-in", layout="wide")
 st.title("🎬 Auto-Caption Burn-in System")
+st.caption("Version 1.1.0 - Typewriter Animation Update")
 
 # Ensure workdir exists
 workdir = "workspace/session"
