@@ -51,11 +51,13 @@ def transcribe_to_srt(model_info, audio_path):
         audio_path, 
         word_timestamps=True,
         initial_prompt=initial_prompt,
-        beam_size=5
+        beam_size=5,
+        vad_filter=True
     )
 
     srt_content = ""
     srt_index = 1
+    word_timings = {}
 
     for segment in segments:
         words = segment.words
@@ -72,6 +74,7 @@ def transcribe_to_srt(model_info, audio_path):
                 end_time = current_phrase[-1]['end']
                 text = " ".join([word['word'] for word in current_phrase])
                 srt_content += f"{srt_index}\n{format_time_srt(start_time)} --> {format_time_srt(end_time)}\n{text}\n\n"
+                word_timings[srt_index] = current_phrase
                 srt_index += 1
                 current_phrase = [{'word': w_text, 'start': w.start, 'end': w.end}]
             else:
@@ -82,9 +85,10 @@ def transcribe_to_srt(model_info, audio_path):
             end_time = current_phrase[-1]['end']
             text = " ".join([word['word'] for word in current_phrase])
             srt_content += f"{srt_index}\n{format_time_srt(start_time)} --> {format_time_srt(end_time)}\n{text}\n\n"
+            word_timings[srt_index] = current_phrase
             srt_index += 1
 
-    return srt_content
+    return srt_content, word_timings
 
 def parse_srt_time(time_str):
     import re
@@ -92,8 +96,11 @@ def parse_srt_time(time_str):
     h, m, s, ms = int(parts[0]), int(parts[1]), int(parts[2]), int(parts[3])
     return h * 3600 + m * 60 + s + ms / 1000.0
 
-def convert_srt_to_ass(srt_text):
+def convert_srt_to_ass(srt_text, word_timings=None):
     import re
+    if word_timings is None:
+        word_timings = {}
+        
     ass_header = """[Script Info]
 ScriptType: v4.00+
 PlayResX: 1080
@@ -113,6 +120,7 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     for block in blocks:
         lines = block.strip().split('\n')
         if len(lines) >= 3:
+            block_idx_str = lines[0].strip()
             time_match = re.search(r'(\d{2}:\d{2}:\d{2},\d{3}) --> (\d{2}:\d{2}:\d{2},\d{3})', lines[1])
             if not time_match: continue
             
@@ -123,13 +131,30 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
             
             if not words: continue
             
-            duration_per_word = (end_time - start_time) / len(words)
             phrase_words = []
             
-            for i, word in enumerate(words):
-                w_start = start_time + (i * duration_per_word)
-                w_end = start_time + ((i + 1) * duration_per_word)
-                phrase_words.append({'word': word, 'start': w_start, 'end': w_end})
+            # Check if we can use original memory
+            use_memory = False
+            if block_idx_str.isdigit():
+                idx = int(block_idx_str)
+                if idx in word_timings:
+                    original_words = word_timings[idx]
+                    if len(original_words) == len(words):
+                        use_memory = True
+                        for i, w in enumerate(words):
+                            phrase_words.append({
+                                'word': w, 
+                                'start': original_words[i]['start'], 
+                                'end': original_words[i]['end']
+                            })
+                            
+            # Fallback to equal distribution
+            if not use_memory:
+                duration_per_word = (end_time - start_time) / len(words)
+                for i, word in enumerate(words):
+                    w_start = start_time + (i * duration_per_word)
+                    w_end = start_time + ((i + 1) * duration_per_word)
+                    phrase_words.append({'word': word, 'start': w_start, 'end': w_end})
                 
             for i, word_obj in enumerate(phrase_words):
                 display_start = word_obj['start']
