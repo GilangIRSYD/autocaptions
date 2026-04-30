@@ -11,10 +11,13 @@ def extract_audio(video_path, audio_path):
 
 def burn_subtitles(video_path, srt_path, output_path):
     # Using libx264 for CPU encoding as per spec
+    # Added Opaque Bounding Box styling (TikTok style)
+    style = "Alignment=2,FontSize=22,MarginV=40,PrimaryColour=&H00FFFFFF,BackColour=&H80000000,BorderStyle=3,Outline=4"
     cmd = [
         "ffmpeg", "-i", video_path,
-        "-vf", f"subtitles={srt_path}:force_style='Alignment=2,FontSize=24,MarginV=20'",
+        "-vf", f"subtitles={srt_path}:force_style='{style}'",
         "-c:v", "libx264", "-preset", "fast", "-c:a", "copy",
         "-y", output_path
     ]
     subprocess.run(cmd, check=True)
+
