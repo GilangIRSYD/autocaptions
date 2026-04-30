@@ -11,8 +11,9 @@ def extract_audio(video_path, audio_path):
 
 def burn_subtitles(video_path, srt_path, output_path):
     # Using libx264 for CPU encoding as per spec
-    # Refined Opaque Bounding Box styling with Liberation Sans Bold
-    style = "FontName=Liberation Sans,Bold=1,Alignment=2,FontSize=16,MarginV=40,PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=3,Outline=1"
+    # Refined Opaque Bounding Box styling with DejaVu Sans Bold
+    style = "FontName=DejaVu Sans,Bold=1,Alignment=2,FontSize=16,MarginV=40,PrimaryColour=&H00FFFFFF,BackColour=&H99000000,BorderStyle=3,Outline=1"
+
 
 
     cmd = [
