@@ -6,7 +6,7 @@ from transcriber import load_whisper_model, transcribe_to_srt, convert_srt_to_as
 
 st.set_page_config(page_title="Auto-Caption Burn-in", layout="wide")
 st.title("🎬 Auto-Caption Burn-in System")
-st.caption("Version 1.2.0 - Smart Subtitle Editing")
+st.caption("Version 1.3.0 - Faster-Whisper (Small) & Smart Editing")
 
 # Ensure workdir exists
 workdir = "workspace/session"
