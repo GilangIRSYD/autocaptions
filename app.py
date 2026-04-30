@@ -29,8 +29,8 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
                     audio_path = os.path.join(workdir, "audio.wav")
                     extract_audio(input_path, audio_path)
                     
-                    model = load_whisper_model()
-                    srt_content = transcribe_to_srt(model, audio_path)
+                    model_info = load_whisper_model()
+                    srt_content = transcribe_to_srt(model_info, audio_path)
                     
                     st.session_state.srt_content = srt_content
                     st.session_state.step = 2
