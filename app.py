@@ -2,11 +2,11 @@ import streamlit as st
 import os
 import shutil
 from utils import extract_audio, burn_subtitles
-from transcriber import load_whisper_model, transcribe_to_ass
+from transcriber import load_whisper_model, transcribe_to_srt, convert_srt_to_ass
 
 st.set_page_config(page_title="Auto-Caption Burn-in", layout="wide")
 st.title("🎬 Auto-Caption Burn-in System")
-st.caption("Version 1.1.2 - Vertical Position Adjustment")
+st.caption("Version 1.2.0 - Smart Subtitle Editing")
 
 # Ensure workdir exists
 workdir = "workspace/session"
@@ -31,9 +31,9 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
                     extract_audio(input_path, audio_path)
                     
                     model_info = load_whisper_model()
-                    ass_content = transcribe_to_ass(model_info, audio_path)
+                    srt_content = transcribe_to_srt(model_info, audio_path)
                     
-                    st.session_state.ass_content = ass_content
+                    st.session_state.srt_content = srt_content
                     st.session_state.step = 2
                     st.rerun()
                 except Exception as e:
@@ -41,13 +41,18 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
 
 # Step 2: Review & Edit Subtitle
 with st.expander("Step 2: Review & Edit Subtitle", expanded=(st.session_state.step == 2)):
-    if "ass_content" in st.session_state:
-        edited_ass = st.text_area("Edit ASS content", st.session_state.ass_content, height=300)
+    if "srt_content" in st.session_state:
+        edited_srt = st.text_area("Edit Subtitles (SRT Format)", st.session_state.srt_content, height=300)
         if st.button("Save & Start Burn-in"):
-            st.session_state.ass_content = edited_ass
-            ass_path = os.path.join(workdir, "subs.ass")
-            with open(ass_path, "w") as f:
-                f.write(edited_ass)
+            st.session_state.srt_content = edited_srt
+            
+            # Convert edited SRT to ASS for processing
+            with st.spinner("Mempersiapkan animasi typewriter..."):
+                ass_content = convert_srt_to_ass(edited_srt)
+                ass_path = os.path.join(workdir, "subs.ass")
+                with open(ass_path, "w", encoding="utf-8") as f:
+                    f.write(ass_content)
+                
             st.session_state.step = 3
             st.rerun()
 
@@ -75,3 +80,4 @@ with st.expander("Step 3: Burn-in & Result", expanded=(st.session_state.step == 
                     shutil.rmtree(workdir)
                 st.session_state.clear()
                 st.rerun()
+
