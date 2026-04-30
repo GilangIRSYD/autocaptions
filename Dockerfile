@@ -1,14 +1,16 @@
-FROM nvidia/cuda:11.8.0-runtime-ubuntu22.04
+FROM python:3.10-slim
 
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3 python3-pip ffmpeg fonts-roboto \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
-
-
 WORKDIR /app
+
+# Install Python dependencies (CPU only for smaller image size)
 COPY requirements.txt .
-RUN pip3 install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu && \
+    pip3 install --no-cache-dir -r requirements.txt
 
 COPY . .
 
