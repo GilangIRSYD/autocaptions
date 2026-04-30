@@ -11,8 +11,9 @@ def extract_audio(video_path, audio_path):
 
 def burn_subtitles(video_path, srt_path, output_path):
     # Using libx264 for CPU encoding as per spec
-    # Reverted to original default styling
-    style = "Alignment=2,FontSize=24,MarginV=20"
+    # Cinematic styling: Roboto Bold with outline and shadow (No Box)
+    style = "FontName=Roboto,Bold=1,FontSize=18,Alignment=2,MarginV=30,Outline=1.5,Shadow=1,PrimaryColour=&H00FFFFFF"
+
 
 
 
