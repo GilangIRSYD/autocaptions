@@ -2,7 +2,7 @@ import streamlit as st
 import os
 import shutil
 from utils import extract_audio, burn_subtitles
-from transcriber import load_whisper_model, transcribe_to_srt
+from transcriber import load_whisper_model, transcribe_to_ass
 
 st.set_page_config(page_title="Auto-Caption Burn-in", layout="wide")
 st.title("🎬 Auto-Caption Burn-in System")
@@ -30,9 +30,9 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
                     extract_audio(input_path, audio_path)
                     
                     model_info = load_whisper_model()
-                    srt_content = transcribe_to_srt(model_info, audio_path)
+                    ass_content = transcribe_to_ass(model_info, audio_path)
                     
-                    st.session_state.srt_content = srt_content
+                    st.session_state.ass_content = ass_content
                     st.session_state.step = 2
                     st.rerun()
                 except Exception as e:
@@ -40,13 +40,13 @@ with st.expander("Step 1: Upload & Transcribe", expanded=(st.session_state.step 
 
 # Step 2: Review & Edit Subtitle
 with st.expander("Step 2: Review & Edit Subtitle", expanded=(st.session_state.step == 2)):
-    if "srt_content" in st.session_state:
-        edited_srt = st.text_area("Edit SRT content", st.session_state.srt_content, height=300)
+    if "ass_content" in st.session_state:
+        edited_ass = st.text_area("Edit ASS content", st.session_state.ass_content, height=300)
         if st.button("Save & Start Burn-in"):
-            st.session_state.srt_content = edited_srt
-            srt_path = os.path.join(workdir, "subs.srt")
-            with open(srt_path, "w") as f:
-                f.write(edited_srt)
+            st.session_state.ass_content = edited_ass
+            ass_path = os.path.join(workdir, "subs.ass")
+            with open(ass_path, "w") as f:
+                f.write(edited_ass)
             st.session_state.step = 3
             st.rerun()
 
@@ -54,13 +54,13 @@ with st.expander("Step 2: Review & Edit Subtitle", expanded=(st.session_state.st
 with st.expander("Step 3: Burn-in & Result", expanded=(st.session_state.step == 3)):
     if st.session_state.step == 3:
         input_path = os.path.join(workdir, "input.mp4")
-        srt_path = os.path.join(workdir, "subs.srt")
+        ass_path = os.path.join(workdir, "subs.ass")
         output_path = os.path.join(workdir, "output.mp4")
         
         if not os.path.exists(output_path):
             with st.spinner("Melakukan hardcode subtitle (CPU Encoding)..."):
                 try:
-                    burn_subtitles(input_path, srt_path, output_path)
+                    burn_subtitles(input_path, ass_path, output_path)
                 except Exception as e:
                     st.error(f"Error during burn-in: {e}")
         

@@ -9,13 +9,11 @@ def extract_audio(video_path, audio_path):
     ]
     subprocess.run(cmd, check=True)
 
-def burn_subtitles(video_path, srt_path, output_path):
-    # Using libx264 for CPU encoding as per spec
-    # Cinematic styling: Roboto Bold with outline and shadow (No Box)
-    style = "FontName=Roboto,Bold=1,FontSize=14,Alignment=2,MarginV=80,Outline=1.5,Shadow=1,PrimaryColour=&H00FFFFFF"
+def burn_subtitles(video_path, ass_path, output_path):
+    # Styling is now natively handled by the .ass file header
     cmd = [
         "ffmpeg", "-i", video_path,
-        "-vf", f"subtitles={srt_path}:force_style='{style}'",
+        "-vf", f"ass='{ass_path}'",
         "-c:v", "libx264", "-preset", "fast", "-c:a", "copy",
         "-y", output_path
     ]
